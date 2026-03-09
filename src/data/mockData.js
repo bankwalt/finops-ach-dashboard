@@ -728,12 +728,78 @@ export const MOCK_ACH_FILE_TIMINGS = [
   },
 ];
 
-// FIRD File Status — custom internal file, daily by 10:30 AM
+// FIRD File Status — FedACH Information Return & Delivery, daily by 10:30 AM
+// Data derived from real FIRD file: 074920912_fird_074014187_20260305.txt
 export const MOCK_FIRD_STATUS = {
   deadline: '10:30 AM',
   deadlineHour: 10,
   deadlineMinute: 30,
   received: true,
   receivedAt: todayAt(10, 12),
-  fileName: 'FIRD_20260304.txt',
+  fileName: '074920912_fird_074014187_20260309.txt',
+  // Parsed header record (H line)
+  header: {
+    fedRTN: '074014187',
+    participantRTN: '074920912',
+    reportDate: '2026-03-09',
+    openingPosition: 498471169.09,
+    openingDir: 'C',
+    totalCredits: 648686513.54,
+    totalDebits: 594784398.27,
+    closingPosition: 552373284.36,
+    closingDir: 'C',
+  },
+  // Parsed 57xxx net settlement records (5-digit codes per FIRD Layout spec, positions 5-9)
+  positionRecords: [
+    // W1 — 0830 Morning Settlement (prev-day late OUT files + received)
+    { type: '57010', amount: 376.22, dir: 'C', cycle: '0830' },
+    { type: '57020', amount: 622.67, dir: 'D', cycle: '0830' },
+    { type: '57030', amount: 1561.08, dir: 'D', cycle: '0830' },
+    { type: '57040', amount: 419582.62, dir: 'C', cycle: '0830' },
+    // W3 — 1300 Afternoon Settlement (0700 OUT file)
+    { type: '57290', amount: 2564.31, dir: 'C', cycle: '1300' },
+    { type: '57310', amount: 13923.72, dir: 'D', cycle: '1300' },
+    { type: '57330', amount: 3596.26, dir: 'D', cycle: '1300' },
+    // W2 — 1700 Late Afternoon Settlement (1115 OUT file + received)
+    { type: '57050', amount: 954.73, dir: 'D', cycle: '1700' },
+    { type: '57240', amount: 844.55, dir: 'C', cycle: '1700' },
+    { type: '57260', amount: 8200.00, dir: 'D', cycle: '1700' },
+    { type: '57270', amount: 7199.76, dir: 'C', cycle: '1700' },
+    // W4 — 1800 Evening Settlement (1315 OUT file + received)
+    { type: '57280', amount: 271.31, dir: 'D', cycle: '1800' },
+    { type: '57340', amount: 7829.13, dir: 'C', cycle: '1800' },
+    { type: '57360', amount: 19500.00, dir: 'D', cycle: '1800' },
+  ],
+  // Parsed 44010 item-level FedACH transaction records (APPL-ID=FN, TYPE-SUB=0080)
+  // NOTE: These are a detail breakout INSIDE 57040/57270 received settlement — do NOT double-count
+  itemRecords: [
+    { amount: 5.43, dir: 'D', offsetTrace: '065000090', cycle: '0803', reference: 'FN4434648' },
+    { amount: 29.41, dir: 'D', offsetTrace: '321171184', cycle: '0803', reference: 'FN4434649' },
+    { amount: 55.47, dir: 'D', offsetTrace: '063107513', cycle: '0801', reference: 'FN4434622' },
+    { amount: 201.07, dir: 'D', offsetTrace: '063107513', cycle: '0803', reference: 'FN4434643' },
+    { amount: 348.63, dir: 'D', offsetTrace: '267084131', cycle: '1700', reference: 'FN4440801' },
+    { amount: 369.53, dir: 'D', offsetTrace: '063107513', cycle: '0802', reference: 'FN4434627' },
+    { amount: 380.53, dir: 'D', offsetTrace: '221271935', cycle: '0807', reference: 'FN4434694' },
+    { amount: 414.36, dir: 'D', offsetTrace: '063107513', cycle: '0805', reference: 'FN4434675' },
+    { amount: 489.58, dir: 'D', offsetTrace: '063107513', cycle: '0805', reference: 'FN4434668' },
+    { amount: 568.25, dir: 'D', offsetTrace: '063107513', cycle: '0803', reference: 'FN4434641' },
+    { amount: 702.00, dir: 'D', offsetTrace: '272484894', cycle: '0808', reference: 'FN4434721' },
+    { amount: 753.30, dir: 'D', offsetTrace: '063107513', cycle: '0802', reference: 'FN4434631' },
+    { amount: 1022.18, dir: 'D', offsetTrace: '221271935', cycle: '0807', reference: 'FN4434700' },
+    { amount: 1312.77, dir: 'D', offsetTrace: '063107513', cycle: '0805', reference: 'FN4434670' },
+    { amount: 1881.79, dir: 'D', offsetTrace: '028000121', cycle: '0806', reference: 'FN4434684' },
+    { amount: 2559.27, dir: 'D', offsetTrace: '063107513', cycle: '0803', reference: 'FN4434646' },
+    { amount: 2864.90, dir: 'D', offsetTrace: '322271627', cycle: '0803', reference: 'FN4434638' },
+    { amount: 3400.00, dir: 'D', offsetTrace: '256074974', cycle: '1903', reference: 'FN4429105' },
+    { amount: 4075.85, dir: 'D', offsetTrace: '028000121', cycle: '0804', reference: 'FN4434658' },
+    { amount: 5061.90, dir: 'D', offsetTrace: '121042882', cycle: '0807', reference: 'FN4434692' },
+    { amount: 12890.37, dir: 'D', offsetTrace: '322271627', cycle: '0807', reference: 'FN4434698' },
+    { amount: 13100.00, dir: 'D', offsetTrace: '256074974', cycle: '1903', reference: 'FN4429109' },
+    { amount: 16317.33, dir: 'D', offsetTrace: '028000121', cycle: '0800', reference: 'FN4434606' },
+    { amount: 19128.94, dir: 'D', offsetTrace: '028000121', cycle: '0807', reference: 'FN4434685' },
+    { amount: 24875.59, dir: 'D', offsetTrace: '028000121', cycle: '0807', reference: 'FN4434695' },
+    { amount: 42643.39, dir: 'D', offsetTrace: '322271627', cycle: '0800', reference: 'FN4434605' },
+    { amount: 42682.63, dir: 'D', offsetTrace: '322271627', cycle: '0801', reference: 'FN4434615' },
+    { amount: 48672.35, dir: 'D', offsetTrace: '322271627', cycle: '0802', reference: 'FN4434626' },
+  ],
 };
