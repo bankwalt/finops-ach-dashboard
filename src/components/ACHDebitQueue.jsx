@@ -95,7 +95,7 @@ function DecisionPanel({ item }) {
           <div className="exc-decision-title">Confirm Pay</div>
           <p className="exc-decision-desc">
             Post debit of <strong>{formatCurrency(item.amount)}</strong> to account{' '}
-            <span className="cell-mono">{item.receivingAccountId}</span> ({item.receivingAccountName}).
+            <span className="cell-mono">{item.finxactAccountId}</span> ({item.receivingName}).
             {item.shortfall > 0 && (
               <span className="exc-shortfall"> Warning: account is short {formatCurrency(item.shortfall)}.</span>
             )}
@@ -128,7 +128,7 @@ function DecisionPanel({ item }) {
             <p className="exc-decision-desc">
               Transfer <strong>{formatCurrency(item.shortfall)}</strong> from{' '}
               <span className="cell-mono">{selectedOffsetAccountId}</span> to{' '}
-              <span className="cell-mono">{item.receivingAccountId}</span>, then post debit of{' '}
+              <span className="cell-mono">{item.finxactAccountId}</span>, then post debit of{' '}
               <strong>{formatCurrency(item.amount)}</strong>.
             </p>
           ) : (
@@ -206,10 +206,10 @@ function ACHDebitDetail({ item }) {
           <h4 className="exc-detail-heading">Entry Details</h4>
           <div className="expand-meta">
             <div className="meta-item"><span className="meta-label">Trace #</span><span className="meta-value cell-mono">{item.traceNumber}</span></div>
-            <div className="meta-item"><span className="meta-label">Originator</span><span className="meta-value">{item.originatorCompanyName}</span></div>
-            <div className="meta-item"><span className="meta-label">Company ID</span><span className="meta-value cell-mono">{item.originatorCompanyId}</span></div>
+            <div className="meta-item"><span className="meta-label">Company Name</span><span className="meta-value">{item.companyName}</span></div>
+            <div className="meta-item"><span className="meta-label">Company ID</span><span className="meta-value cell-mono">{item.companyId}</span></div>
             <div className="meta-item"><span className="meta-label">SEC Code</span><span className="meta-value"><span className="event-type-badge">{item.secCode}</span></span></div>
-            <div className="meta-item"><span className="meta-label">Description</span><span className="meta-value">{item.entryDescription}</span></div>
+            <div className="meta-item"><span className="meta-label">Description</span><span className="meta-value">{item.companyEntryDescription}</span></div>
             <div className="meta-item"><span className="meta-label">Txn Code</span><span className="meta-value">{item.transactionCode} — {TXN_CODE_LABELS[item.transactionCode] || 'Unknown'}</span></div>
             <div className="meta-item"><span className="meta-label">Effective Date</span><span className="meta-value">{formatDate(item.effectiveDate)}</span></div>
             <div className="meta-item"><span className="meta-label">Source File</span><span className="meta-value cell-mono">{item.sourceFileName}</span></div>
@@ -222,9 +222,11 @@ function ACHDebitDetail({ item }) {
         <div className="exc-detail-section">
           <h4 className="exc-detail-heading">Account &amp; Balance</h4>
           <div className="expand-meta">
+            <div className="meta-item"><span className="meta-label">Routing #</span><span className="meta-value cell-mono">{item.routingNumber}</span></div>
+            <div className="meta-item"><span className="meta-label">Account #</span><span className="meta-value cell-mono">{item.accountNumber}</span></div>
+            <div className="meta-item"><span className="meta-label">Receiving Name</span><span className="meta-value">{item.receivingName}</span></div>
             <div className="meta-item"><span className="meta-label">VAN</span><span className="meta-value cell-mono">{item.receivingVAN}</span></div>
-            <div className="meta-item"><span className="meta-label">FinXact Account</span><span className="meta-value cell-mono">{item.receivingAccountId}</span></div>
-            <div className="meta-item"><span className="meta-label">Account Holder</span><span className="meta-value">{item.receivingAccountName}</span></div>
+            <div className="meta-item"><span className="meta-label">FinXact Account</span><span className="meta-value cell-mono">{item.finxactAccountId}</span></div>
           </div>
           <div className="exc-balance-block">
             <div className="exc-balance-row">
@@ -368,8 +370,8 @@ export default function ACHDebitQueue() {
         cmp = a.amount - b.amount;
       } else if (sortField === 'priority') {
         cmp = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
-      } else if (sortField === 'originatorCompanyName') {
-        cmp = a.originatorCompanyName.localeCompare(b.originatorCompanyName);
+      } else if (sortField === 'companyName') {
+        cmp = a.companyName.localeCompare(b.companyName);
       }
       return sortDir === 'asc' ? cmp : -cmp;
     });
@@ -484,7 +486,7 @@ export default function ACHDebitQueue() {
                 <input type="checkbox" className="exc-checkbox" onChange={handleSelectAll} checked={hasSelection && selectedIds.length === sorted.filter(i => i.status === 'PENDING_DECISION').length} />
               </th>
               <SortHeader field="priority">Priority</SortHeader>
-              <SortHeader field="originatorCompanyName">Originator</SortHeader>
+              <SortHeader field="companyName">Company Name</SortHeader>
               <th>Description</th>
               <SortHeader field="amount">Amount</SortHeader>
               <th>Receiving Acct</th>
@@ -519,10 +521,10 @@ export default function ACHDebitQueue() {
                       <span className={`priority-dot priority-${item.priority}`} title={item.priority} />
                     </td>
                     <td>
-                      <span className="cell-name">{item.originatorCompanyName}</span>
+                      <span className="cell-name">{item.companyName}</span>
                       <span className="event-type-badge" style={{ marginLeft: '0.375rem' }}>{item.secCode}</span>
                     </td>
-                    <td>{item.entryDescription}</td>
+                    <td>{item.companyEntryDescription}</td>
                     <td className="cell-mono amount-debit">{formatCurrency(item.amount)}</td>
                     <td className="cell-mono">{item.receivingVAN}</td>
                     <td className="cell-mono">{formatCurrency(item.availableBalance)}</td>

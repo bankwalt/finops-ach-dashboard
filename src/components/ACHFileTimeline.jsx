@@ -170,6 +170,7 @@ function BatchRow({ batch, isExpanded, onToggle }) {
           <span className={`chevron ${isExpanded ? 'chevron-open' : ''}`}>&#9654;</span>
           <span className="batch-row-number">Batch {batch.batchNumber}</span>
           <span className="batch-row-company">{batch.companyName}</span>
+          <span className="cell-mono" style={{ fontSize: '0.7rem', color: '#64748b' }}>{batch.companyId}</span>
           <span className="sec-badge">{batch.secCode}</span>
         </div>
         <div className="batch-row-right">

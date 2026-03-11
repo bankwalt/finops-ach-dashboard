@@ -560,6 +560,7 @@ export const MOCK_ACH_FILE_TIMINGS = [
       {
         batchNumber: 1,
         companyName: 'ACME PAYROLL INC',
+        companyId: '1234567890',
         companyEntryDescription: 'PAYROLL',
         secCode: 'PPD',
         effectiveDate: todayAt(7, 0),
@@ -578,6 +579,7 @@ export const MOCK_ACH_FILE_TIMINGS = [
       {
         batchNumber: 2,
         companyName: 'JARISPAY LLC',
+        companyId: '9999999999',
         companyEntryDescription: 'VENDOR PMT',
         secCode: 'CCD',
         effectiveDate: todayAt(7, 0),
@@ -595,6 +597,7 @@ export const MOCK_ACH_FILE_TIMINGS = [
       {
         batchNumber: 3,
         companyName: 'PAYSERV BENEFITS',
+        companyId: '3334567890',
         companyEntryDescription: 'INSURANCE',
         secCode: 'PPD',
         effectiveDate: todayAt(7, 0),
@@ -626,6 +629,7 @@ export const MOCK_ACH_FILE_TIMINGS = [
       {
         batchNumber: 1,
         companyName: 'METRO UTILITIES',
+        companyId: '7778901234',
         companyEntryDescription: 'UTILITIES',
         secCode: 'PPD',
         effectiveDate: todayAt(10, 0),
@@ -643,6 +647,7 @@ export const MOCK_ACH_FILE_TIMINGS = [
       {
         batchNumber: 2,
         companyName: 'FIRST NATIONAL LENDING',
+        companyId: '5551234567',
         companyEntryDescription: 'LOAN PMT',
         secCode: 'WEB',
         effectiveDate: todayAt(10, 0),
@@ -671,6 +676,7 @@ export const MOCK_ACH_FILE_TIMINGS = [
       {
         batchNumber: 1,
         companyName: 'RIVERSIDE MORTGAGE',
+        companyId: '9876543210',
         companyEntryDescription: 'MORTGAGE',
         secCode: 'PPD',
         effectiveDate: todayAt(13, 45),
@@ -689,6 +695,7 @@ export const MOCK_ACH_FILE_TIMINGS = [
       {
         batchNumber: 2,
         companyName: 'ABC TAX SERVICES',
+        companyId: '2223456789',
         companyEntryDescription: 'TAX REFUND',
         secCode: 'CCD',
         effectiveDate: todayAt(13, 45),
