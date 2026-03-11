@@ -4,9 +4,10 @@ const TABS = [
   { key: 'ach', label: 'ACH' },
   { key: 'alacriti', label: 'Alacriti' },
   { key: 'transactions', label: 'All Transactions' },
+  { key: 'exceptions', label: 'Exceptions' },
 ];
 
-export default function Header({ onRefreshAlacriti, onRefreshTransactions, alacrtiLoading, transactionsLoading }) {
+export default function Header({ onRefreshAlacriti, onRefreshTransactions, onRefreshExceptions, alacrtiLoading, transactionsLoading, exceptionsLoading }) {
   const { apiMode, setApiMode, lastRefreshed, loadDashboard, isLoading, activePage, setActivePage } = useDashboard();
 
   const formattedTime = lastRefreshed
@@ -16,11 +17,13 @@ export default function Header({ onRefreshAlacriti, onRefreshTransactions, alacr
   const handleRefresh =
     activePage === 'alacriti' && onRefreshAlacriti ? onRefreshAlacriti :
     activePage === 'transactions' && onRefreshTransactions ? onRefreshTransactions :
+    activePage === 'exceptions' && onRefreshExceptions ? onRefreshExceptions :
     loadDashboard;
 
   const refreshLoading =
     activePage === 'alacriti' ? alacrtiLoading :
     activePage === 'transactions' ? transactionsLoading :
+    activePage === 'exceptions' ? exceptionsLoading :
     isLoading;
 
   return (

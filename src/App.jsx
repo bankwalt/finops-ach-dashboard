@@ -8,12 +8,14 @@ import SchedulerStatus from './components/SchedulerStatus';
 import FailedEventsDetail from './components/FailedEventsDetail';
 import AlacrtiDashboard from './components/AlacrtiDashboard';
 import TransactionsDashboard from './components/TransactionsDashboard';
+import ExceptionsDashboard from './components/ExceptionsDashboard';
 import './App.css';
 
 function DashboardContent() {
   const { error, isLoading, eventSummary, loadDashboard, activePage } = useDashboard();
   const alacrtiRefreshRef = useRef(null);
   const transactionsRefreshRef = useRef(null);
+  const exceptionsRefreshRef = useRef(null);
 
   useEffect(() => {
     if (activePage === 'ach') {
@@ -29,11 +31,16 @@ function DashboardContent() {
     transactionsRefreshRef.current?.();
   }, []);
 
+  const handleRefreshExceptions = useCallback(() => {
+    exceptionsRefreshRef.current?.();
+  }, []);
+
   return (
     <div className="app">
       <Header
         onRefreshAlacriti={handleRefreshAlacriti}
         onRefreshTransactions={handleRefreshTransactions}
+        onRefreshExceptions={handleRefreshExceptions}
       />
       <main className="main-content">
         {activePage === 'ach' && (
@@ -65,6 +72,9 @@ function DashboardContent() {
         )}
         {activePage === 'transactions' && (
           <TransactionsDashboard refreshRef={transactionsRefreshRef} />
+        )}
+        {activePage === 'exceptions' && (
+          <ExceptionsDashboard refreshRef={exceptionsRefreshRef} />
         )}
       </main>
     </div>
