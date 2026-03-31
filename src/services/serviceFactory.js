@@ -4,6 +4,7 @@ import { mockEventService, mockCalendarService } from './mockProvider';
 import { alacrtiService } from './alacrtiMockProvider';
 import { transactionService } from './transactionMockProvider';
 import { exceptionsService } from './exceptionsMockProvider';
+import { tmService } from './tmMockProvider';
 
 export function getServices(apiMode) {
   if (apiMode === 'real') {
@@ -13,6 +14,7 @@ export function getServices(apiMode) {
       alacriti: alacrtiService,
       transactions: transactionService,
       exceptions: exceptionsService,
+      tm: tmService,
     };
   }
   return {
@@ -21,5 +23,6 @@ export function getServices(apiMode) {
     alacriti: alacrtiService,
     transactions: transactionService,
     exceptions: exceptionsService,
+    tm: tmService,
   };
 }
