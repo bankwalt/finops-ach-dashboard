@@ -20,20 +20,15 @@ function formatDateTime(iso) {
     d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
-const PRIORITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 const STATUS_LABELS = {
   PENDING_DECISION: 'Pending',
   PAID: 'Paid',
   RETURNED: 'Returned',
-  HELD: 'Held',
-  ESCALATED: 'Escalated',
 };
 const STATUS_BADGE = {
   PENDING_DECISION: 'badge-warning',
   PAID: 'badge-success',
   RETURNED: 'badge-error',
-  HELD: 'badge-info',
-  ESCALATED: 'badge-neutral',
 };
 
 // --- DeadlineCountdown ---
@@ -64,25 +59,14 @@ function DeadlineCountdown({ deadline }) {
 // --- DecisionPanel ---
 
 function DecisionPanel({ item }) {
-  const { decisionAction, selectedOffsetAccountId, isSubmitting, submitDecision, closeDecision } = useExceptions();
+  const { decisionAction, isSubmitting, submitDecision, closeDecision } = useExceptions();
   const [returnCode, setReturnCode] = useState('R01');
   const [notes, setNotes] = useState('');
-  const [holdDuration, setHoldDuration] = useState('1d');
-  const [escalateTo, setEscalateTo] = useState('risk');
 
   const handleSubmit = () => {
     const decision = { action: decisionAction };
     if (decisionAction === 'RETURN') {
       decision.returnCode = returnCode;
-      decision.notes = notes;
-    } else if (decisionAction === 'OFFSET') {
-      decision.offsetAccountId = selectedOffsetAccountId;
-      decision.notes = notes;
-    } else if (decisionAction === 'HOLD') {
-      decision.holdDuration = holdDuration;
-      decision.reason = notes;
-    } else if (decisionAction === 'ESCALATE') {
-      decision.escalateTo = escalateTo;
       decision.notes = notes;
     }
     submitDecision(item.id, decision);
@@ -121,69 +105,13 @@ function DecisionPanel({ item }) {
         </>
       )}
 
-      {decisionAction === 'OFFSET' && (
-        <>
-          <div className="exc-decision-title">Offset &amp; Pay</div>
-          {selectedOffsetAccountId ? (
-            <p className="exc-decision-desc">
-              Transfer <strong>{formatCurrency(item.shortfall)}</strong> from{' '}
-              <span className="cell-mono">{selectedOffsetAccountId}</span> to{' '}
-              <span className="cell-mono">{item.finxactAccountId}</span>, then post debit of{' '}
-              <strong>{formatCurrency(item.amount)}</strong>.
-            </p>
-          ) : (
-            <p className="exc-decision-desc">Select an offset account from the customer&apos;s accounts above.</p>
-          )}
-          <div className="exc-decision-field">
-            <label className="exc-field-label">Notes (optional)</label>
-            <textarea className="exc-notes-textarea" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Offset notes..." />
-          </div>
-        </>
-      )}
-
-      {decisionAction === 'HOLD' && (
-        <>
-          <div className="exc-decision-title">Hold Decision</div>
-          <div className="exc-decision-field">
-            <label className="exc-field-label">Hold Duration</label>
-            <select className="exc-return-select" value={holdDuration} onChange={e => setHoldDuration(e.target.value)}>
-              <option value="eod">End of Day</option>
-              <option value="1d">1 Banking Day</option>
-              <option value="2d">2 Banking Days</option>
-            </select>
-          </div>
-          <div className="exc-decision-field">
-            <label className="exc-field-label">Reason (required)</label>
-            <textarea className="exc-notes-textarea" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Reason for hold..." />
-          </div>
-        </>
-      )}
-
-      {decisionAction === 'ESCALATE' && (
-        <>
-          <div className="exc-decision-title">Escalate</div>
-          <div className="exc-decision-field">
-            <label className="exc-field-label">Route To</label>
-            <select className="exc-return-select" value={escalateTo} onChange={e => setEscalateTo(e.target.value)}>
-              <option value="risk">Risk Team</option>
-              <option value="compliance">Compliance</option>
-              <option value="management">Management</option>
-            </select>
-          </div>
-          <div className="exc-decision-field">
-            <label className="exc-field-label">Notes</label>
-            <textarea className="exc-notes-textarea" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Escalation notes..." />
-          </div>
-        </>
-      )}
-
       <div className="exc-decision-actions">
         <button
           className="btn btn-sm btn-primary"
           onClick={handleSubmit}
-          disabled={isSubmitting || (decisionAction === 'HOLD' && !notes.trim()) || (decisionAction === 'OFFSET' && !selectedOffsetAccountId)}
+          disabled={isSubmitting}
         >
-          {isSubmitting ? 'Submitting...' : `Confirm ${decisionAction === 'PAY' ? 'Pay' : decisionAction === 'RETURN' ? 'Return' : decisionAction === 'OFFSET' ? 'Offset & Pay' : decisionAction === 'HOLD' ? 'Hold' : 'Escalate'}`}
+          {isSubmitting ? 'Submitting...' : `Confirm ${decisionAction === 'PAY' ? 'Pay' : 'Return'}`}
         </button>
         <button className="btn btn-sm btn-secondary" onClick={closeDecision} disabled={isSubmitting}>Cancel</button>
       </div>
@@ -251,45 +179,38 @@ function ACHDebitDetail({ item }) {
               }
             </div>
           </div>
+          <div className="exc-nbs-block">
+            <h4 className="exc-detail-heading">Negative Balance Service</h4>
+            {item.nbsLimit != null ? (
+              <div className="expand-meta">
+                <div className="meta-item">
+                  <span className="meta-label">NBS Limit</span>
+                  <span className="meta-value cell-mono">{formatCurrency(item.nbsLimit)}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Total Negative Bal</span>
+                  {item.totalNegativeBalance != null
+                    ? <span className="meta-value cell-mono exc-shortfall">{formatCurrency(item.totalNegativeBalance)}</span>
+                    : <span className="meta-value cell-mono exc-no-shortfall">$0.00</span>
+                  }
+                </div>
+              </div>
+            ) : (
+              <p className="exc-no-accounts">Not enrolled</p>
+            )}
+          </div>
         </div>
 
-        {/* Right: Other Accounts */}
+        {/* Right: Merchant Details */}
         <div className="exc-detail-section">
-          <h4 className="exc-detail-heading">Customer Other Accounts</h4>
-          {item.customerOtherAccounts.length === 0 ? (
-            <p className="exc-no-accounts">No other accounts on file</p>
-          ) : (
-            <table className="exc-offset-table">
-              <thead>
-                <tr>
-                  <th>Account</th>
-                  <th>Type</th>
-                  <th>Balance</th>
-                  {isPending && <th></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {item.customerOtherAccounts.map(acct => (
-                  <tr key={acct.accountId}>
-                    <td className="cell-mono">{acct.accountId}</td>
-                    <td>{acct.type}</td>
-                    <td className="cell-mono">{formatCurrency(acct.balance)}</td>
-                    {isPending && (
-                      <td>
-                        <button
-                          className="btn btn-sm btn-offset"
-                          onClick={() => openDecision(item.id, 'OFFSET', acct.accountId)}
-                          disabled={acct.balance < item.shortfall}
-                        >
-                          Offset
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <h4 className="exc-detail-heading">Merchant Details</h4>
+          <div className="expand-meta">
+            <div className="meta-item"><span className="meta-label">Shop ID</span><span className="meta-value cell-mono">{item.shopId}</span></div>
+            <div className="meta-item"><span className="meta-label">Partner ID</span><span className="meta-value cell-mono">{item.partnerId}</span></div>
+            <div className="meta-item"><span className="meta-label">Legal Name</span><span className="meta-value">{item.shopLegalName}</span></div>
+            <div className="meta-item"><span className="meta-label">Tax ID</span><span className="meta-value cell-mono">{item.taxId}</span></div>
+            <div className="meta-item"><span className="meta-label">DBA</span><span className="meta-value">{item.shopDBA}</span></div>
+          </div>
         </div>
       </div>
 
@@ -309,11 +230,6 @@ function ACHDebitDetail({ item }) {
         <div className="exc-action-bar">
           <button className="btn btn-sm btn-pay" onClick={() => openDecision(item.id, 'PAY')}>Pay</button>
           <button className="btn btn-sm btn-return" onClick={() => openDecision(item.id, 'RETURN')}>Return</button>
-          {item.customerOtherAccounts.length > 0 && item.shortfall > 0 && (
-            <button className="btn btn-sm btn-offset" onClick={() => openDecision(item.id, 'OFFSET')}>Offset &amp; Pay</button>
-          )}
-          <button className="btn btn-sm btn-hold" onClick={() => openDecision(item.id, 'HOLD')}>Hold</button>
-          <button className="btn btn-sm btn-escalate" onClick={() => openDecision(item.id, 'ESCALATE')}>Escalate</button>
         </div>
       )}
 
@@ -343,9 +259,9 @@ function ACHDebitDetail({ item }) {
 
 export default function ACHDebitQueue() {
   const {
-    achDebitQueue, priorityFilter, statusFilter, sortField, sortDir,
+    achDebitQueue, statusFilter, sortField, sortDir,
     selectedIds, expandedItemId,
-    setPriorityFilter, setStatusFilter, setSort,
+    setStatusFilter, setSort,
     toggleSelect, selectAll, clearSelection, toggleExpandedItem,
     submitDecision, isSubmitting,
   } = useExceptions();
@@ -355,10 +271,9 @@ export default function ACHDebitQueue() {
   // Filter
   const filtered = useMemo(() => {
     let items = achDebitQueue;
-    if (priorityFilter) items = items.filter(i => i.priority === priorityFilter);
     if (statusFilter) items = items.filter(i => i.status === statusFilter);
     return items;
-  }, [achDebitQueue, priorityFilter, statusFilter]);
+  }, [achDebitQueue, statusFilter]);
 
   // Sort
   const sorted = useMemo(() => {
@@ -368,8 +283,6 @@ export default function ACHDebitQueue() {
         cmp = new Date(a.returnDeadline) - new Date(b.returnDeadline);
       } else if (sortField === 'amount') {
         cmp = a.amount - b.amount;
-      } else if (sortField === 'priority') {
-        cmp = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
       } else if (sortField === 'companyName') {
         cmp = a.companyName.localeCompare(b.companyName);
       }
@@ -429,20 +342,6 @@ export default function ACHDebitQueue() {
       {/* Filter Bar */}
       <div className="txn-filter-bar">
         <div className="txn-filter-group">
-          <span className="txn-filter-label">Priority</span>
-          <div className="txn-filter-pills">
-            {['critical', 'high', 'medium', 'low'].map(p => (
-              <button
-                key={p}
-                className={`txn-pill ${priorityFilter === p ? `txn-pill-active badge-${p}` : ''}`}
-                onClick={() => setPriorityFilter(p)}
-              >
-                {p.charAt(0).toUpperCase() + p.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="txn-filter-group">
           <span className="txn-filter-label">Status</span>
           <div className="txn-filter-pills">
             {Object.entries(STATUS_LABELS).map(([key, label]) => (
@@ -456,8 +355,8 @@ export default function ACHDebitQueue() {
             ))}
           </div>
         </div>
-        {(priorityFilter || statusFilter) && (
-          <button className="txn-clear-filters" onClick={() => { setPriorityFilter(null); setStatusFilter(null); }}>
+        {statusFilter && (
+          <button className="txn-clear-filters" onClick={() => { setStatusFilter(null); }}>
             Clear Filters
           </button>
         )}
@@ -485,7 +384,6 @@ export default function ACHDebitQueue() {
               <th className="exc-checkbox-cell">
                 <input type="checkbox" className="exc-checkbox" onChange={handleSelectAll} checked={hasSelection && selectedIds.length === sorted.filter(i => i.status === 'PENDING_DECISION').length} />
               </th>
-              <SortHeader field="priority">Priority</SortHeader>
               <SortHeader field="companyName">Company Name</SortHeader>
               <th>Description</th>
               <SortHeader field="amount">Amount</SortHeader>
@@ -503,7 +401,7 @@ export default function ACHDebitQueue() {
               return (
                 <tbody key={item.id}>
                   <tr
-                    className={`${isExpanded ? 'row-expanded' : ''} ${item.priority === 'critical' ? 'row-overdue' : ''}`}
+                    className={isExpanded ? 'row-expanded' : ''}
                     onClick={() => toggleExpandedItem(item.id)}
                     style={{ cursor: 'pointer' }}
                   >
@@ -516,9 +414,6 @@ export default function ACHDebitQueue() {
                           onChange={() => toggleSelect(item.id)}
                         />
                       )}
-                    </td>
-                    <td>
-                      <span className={`priority-dot priority-${item.priority}`} title={item.priority} />
                     </td>
                     <td>
                       <span className="cell-name">{item.companyName}</span>
@@ -542,7 +437,7 @@ export default function ACHDebitQueue() {
                   </tr>
                   {isExpanded && (
                     <tr className="expand-row">
-                      <td colSpan="11">
+                      <td colSpan="10">
                         <ACHDebitDetail item={item} />
                       </td>
                     </tr>

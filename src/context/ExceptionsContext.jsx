@@ -13,7 +13,6 @@ const initialState = {
   categoryQueue: [],
   categoryQueueLoading: false,
   activeCategory: 'achDebitDecisioning',
-  priorityFilter: null,
   statusFilter: null,
   sortField: 'returnDeadline',
   sortDir: 'asc',
@@ -56,8 +55,6 @@ function reducer(state, action) {
       return { ...state, categoryQueueLoading: action.payload };
     case 'LOAD_CATEGORY_QUEUE':
       return { ...state, categoryQueue: action.payload, categoryQueueLoading: false };
-    case 'SET_PRIORITY_FILTER':
-      return { ...state, priorityFilter: state.priorityFilter === action.payload ? null : action.payload };
     case 'SET_STATUS_FILTER':
       return { ...state, statusFilter: state.statusFilter === action.payload ? null : action.payload };
     case 'SET_SORT':
@@ -163,7 +160,7 @@ export function ExceptionsProvider({ children }) {
       if (!result.ok) {
         throw new Error('Failed to submit decision');
       }
-      const statusMap = { PAY: 'PAID', RETURN: 'RETURNED', OFFSET: 'PAID', HOLD: 'HELD', ESCALATE: 'ESCALATED' };
+      const statusMap = { PAY: 'PAID', RETURN: 'RETURNED' };
       dispatch({
         type: 'DECISION_COMPLETE',
         payload: {
@@ -180,10 +177,6 @@ export function ExceptionsProvider({ children }) {
 
   const setActiveCategory = useCallback((category) => {
     dispatch({ type: 'SET_ACTIVE_CATEGORY', payload: category });
-  }, []);
-
-  const setPriorityFilter = useCallback((priority) => {
-    dispatch({ type: 'SET_PRIORITY_FILTER', payload: priority });
   }, []);
 
   const setStatusFilter = useCallback((status) => {
@@ -224,7 +217,6 @@ export function ExceptionsProvider({ children }) {
     loadCategoryQueue,
     submitDecision,
     setActiveCategory,
-    setPriorityFilter,
     setStatusFilter,
     setSort,
     toggleSelect,

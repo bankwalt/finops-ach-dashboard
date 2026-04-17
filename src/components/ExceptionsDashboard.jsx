@@ -2,7 +2,10 @@ import { useEffect } from 'react';
 import { ExceptionsProvider, useExceptions } from '../context/ExceptionsContext';
 import ExceptionsSummary from './ExceptionsSummary';
 import ACHDebitQueue from './ACHDebitQueue';
+import PayoutRetryQueue from './PayoutRetryQueue';
 import CategoryQueue from './CategoryQueue';
+
+const SPECIAL_CATEGORIES = ['achDebitDecisioning', 'payoutRetryQueue'];
 
 function ExceptionsContent({ refreshRef }) {
   const { isLoading, error, summary, activeCategory, loadExceptions, loadCategoryQueue } = useExceptions();
@@ -12,7 +15,7 @@ function ExceptionsContent({ refreshRef }) {
   }, [loadExceptions]);
 
   useEffect(() => {
-    if (activeCategory && activeCategory !== 'achDebitDecisioning') {
+    if (activeCategory && !SPECIAL_CATEGORIES.includes(activeCategory)) {
       loadCategoryQueue(activeCategory);
     }
   }, [activeCategory, loadCategoryQueue]);
@@ -45,7 +48,8 @@ function ExceptionsContent({ refreshRef }) {
     <>
       <ExceptionsSummary />
       {activeCategory === 'achDebitDecisioning' && <ACHDebitQueue />}
-      {activeCategory !== 'achDebitDecisioning' && <CategoryQueue />}
+      {activeCategory === 'payoutRetryQueue' && <PayoutRetryQueue />}
+      {!SPECIAL_CATEGORIES.includes(activeCategory) && <CategoryQueue />}
     </>
   );
 }

@@ -2016,6 +2016,23 @@
   font-weight: 700;
 }
 
+/* Negative Balance Service block */
+.exc-nbs-block {
+  margin-top: 0.75rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+}
+
+.exc-nbs-block .exc-detail-heading {
+  margin-bottom: 0.375rem;
+}
+
+.exc-nbs-block .exc-no-accounts {
+  margin: 0;
+}
+
 /* Notes section */
 .exc-notes-section {
   margin-bottom: 0.75rem;
@@ -3935,7 +3952,11 @@ td:has(.exc-confidence-bar) {
 .tm-filter-clear:hover { background: #f1f5f9; color: #475569; }
 
 /* --- Alert Table --- */
-.tm-table-wrapper { overflow-x: auto; }
+.tm-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 260px);
+}
 
 .tm-alert-table {
   width: 100%;
@@ -3944,6 +3965,9 @@ td:has(.exc-confidence-bar) {
 }
 
 .tm-alert-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   padding: 10px 12px;
   text-align: left;
   font-weight: 600;

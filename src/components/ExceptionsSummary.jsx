@@ -3,6 +3,7 @@ import { EXCEPTION_CATEGORY_LABELS } from '../data/exceptionsMockData';
 
 const CATEGORY_KEYS = [
   'achDebitDecisioning',
+  'payoutRetryQueue',
   'vanExceptions',
   'reconExceptions',
   'achProcessingErrors',
@@ -11,28 +12,6 @@ const CATEGORY_KEYS = [
   'payoutExceptions',
   'infraAlerts',
 ];
-
-function PriorityBreakdown({ data }) {
-  const items = [
-    { key: 'critical', count: data.critical },
-    { key: 'high', count: data.high },
-    { key: 'medium', count: data.medium },
-    { key: 'low', count: data.low },
-  ].filter(item => item.count > 0);
-
-  if (items.length === 0) return null;
-
-  return (
-    <div className="exc-category-breakdown">
-      {items.map(item => (
-        <span key={item.key} className="exc-priority-chip">
-          <span className={`priority-dot priority-${item.key}`} />
-          {item.count}
-        </span>
-      ))}
-    </div>
-  );
-}
 
 export default function ExceptionsSummary() {
   const { summary, activeCategory, setActiveCategory } = useExceptions();
@@ -64,7 +43,6 @@ export default function ExceptionsSummary() {
                 {EXCEPTION_CATEGORY_LABELS[key]}
               </div>
               <div className="exc-category-count">{data.total}</div>
-              <PriorityBreakdown data={data} />
             </button>
           );
         })}
