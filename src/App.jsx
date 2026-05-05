@@ -1,30 +1,16 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 import { DashboardProvider, useDashboard } from './context/DashboardContext';
 import Header from './components/Header';
-import HealthOverview from './components/HealthOverview';
-import ACHFileTimeline from './components/ACHFileTimeline';
-import FIRDStatus from './components/FIRDStatus';
-import SchedulerStatus from './components/SchedulerStatus';
-import FailedEventsDetail from './components/FailedEventsDetail';
+import DailyProcessing from './components/DailyProcessing';
 import AlacrtiDashboard from './components/AlacrtiDashboard';
 import TransactionsDashboard from './components/TransactionsDashboard';
-import ExceptionsDashboard from './components/ExceptionsDashboard';
-import ACHReconciliation from './components/ACHReconciliation';
-import TMDashboard from './components/TMDashboard';
 import './App.css';
 
 function DashboardContent() {
-  const { error, isLoading, eventSummary, loadDashboard, activePage } = useDashboard();
+  const { activePage } = useDashboard();
   const alacrtiRefreshRef = useRef(null);
   const transactionsRefreshRef = useRef(null);
-  const exceptionsRefreshRef = useRef(null);
-  const reconRefreshRef = useRef(null);
-  const tmRefreshRef = useRef(null);
-  useEffect(() => {
-    if (activePage === 'ach') {
-      loadDashboard();
-    }
-  }, [loadDashboard, activePage]);
+  const dailyRefreshRef = useRef(null);
 
   const handleRefreshAlacriti = useCallback(() => {
     alacrtiRefreshRef.current?.();
@@ -34,16 +20,8 @@ function DashboardContent() {
     transactionsRefreshRef.current?.();
   }, []);
 
-  const handleRefreshExceptions = useCallback(() => {
-    exceptionsRefreshRef.current?.();
-  }, []);
-
-  const handleRefreshRecon = useCallback(() => {
-    reconRefreshRef.current?.();
-  }, []);
-
-  const handleRefreshTM = useCallback(() => {
-    tmRefreshRef.current?.();
+  const handleRefreshDaily = useCallback(() => {
+    dailyRefreshRef.current?.();
   }, []);
 
   return (
@@ -51,49 +29,17 @@ function DashboardContent() {
       <Header
         onRefreshAlacriti={handleRefreshAlacriti}
         onRefreshTransactions={handleRefreshTransactions}
-        onRefreshExceptions={handleRefreshExceptions}
-        onRefreshRecon={handleRefreshRecon}
-        onRefreshTM={handleRefreshTM}
+        onRefreshDaily={handleRefreshDaily}
       />
-      {activePage === 'recon' && (
-        <ACHReconciliation refreshRef={reconRefreshRef} />
+      {activePage === 'daily' && (
+        <DailyProcessing refreshRef={dailyRefreshRef} />
       )}
-      <main className="main-content" style={activePage === 'recon' ? { display: 'none' } : undefined}>
-        {activePage === 'ach' && (
-          <>
-            {error && (
-              <div className="error-banner">
-                <span className="error-banner-icon">!</span>
-                <span>{error}</span>
-              </div>
-            )}
-            {isLoading && !eventSummary ? (
-              <div className="loading-state">
-                <div className="loading-spinner" />
-                <p>Loading dashboard data...</p>
-              </div>
-            ) : (
-              <>
-                <HealthOverview />
-                <ACHFileTimeline />
-                <FIRDStatus />
-                <SchedulerStatus />
-                <FailedEventsDetail />
-              </>
-            )}
-          </>
-        )}
+      <main className="main-content" style={activePage === 'daily' ? { display: 'none' } : undefined}>
         {activePage === 'alacriti' && (
           <AlacrtiDashboard refreshRef={alacrtiRefreshRef} />
         )}
         {activePage === 'transactions' && (
           <TransactionsDashboard refreshRef={transactionsRefreshRef} />
-        )}
-        {activePage === 'exceptions' && (
-          <ExceptionsDashboard refreshRef={exceptionsRefreshRef} />
-        )}
-        {activePage === 'tm' && (
-          <TMDashboard refreshRef={tmRefreshRef} />
         )}
       </main>
     </div>

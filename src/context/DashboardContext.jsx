@@ -5,7 +5,7 @@ const DashboardContext = createContext(null);
 
 const initialState = {
   apiMode: 'mock',
-  activePage: 'ach',
+  activePage: 'daily',
   isLoading: false,
   error: null,
   lastRefreshed: null,

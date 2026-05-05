@@ -1,15 +1,12 @@
 import { useDashboard } from '../context/DashboardContext';
 
 const TABS = [
-  { key: 'ach', label: 'ACH' },
-  { key: 'recon', label: 'Recon' },
+  { key: 'daily', label: 'Daily Processing' },
   { key: 'alacriti', label: 'Alacriti' },
   { key: 'transactions', label: 'All Transactions' },
-  { key: 'exceptions', label: 'Exceptions' },
-  { key: 'tm', label: 'Monitoring' },
 ];
 
-export default function Header({ onRefreshAlacriti, onRefreshTransactions, onRefreshExceptions, onRefreshRecon, onRefreshTM, alacrtiLoading, transactionsLoading, exceptionsLoading, tmLoading }) {
+export default function Header({ onRefreshAlacriti, onRefreshTransactions, onRefreshDaily, alacrtiLoading, transactionsLoading, dailyLoading }) {
   const { apiMode, setApiMode, lastRefreshed, loadDashboard, isLoading, activePage, setActivePage } = useDashboard();
 
   const formattedTime = lastRefreshed
@@ -19,16 +16,13 @@ export default function Header({ onRefreshAlacriti, onRefreshTransactions, onRef
   const handleRefresh =
     activePage === 'alacriti' && onRefreshAlacriti ? onRefreshAlacriti :
     activePage === 'transactions' && onRefreshTransactions ? onRefreshTransactions :
-    activePage === 'exceptions' && onRefreshExceptions ? onRefreshExceptions :
-    activePage === 'recon' && onRefreshRecon ? onRefreshRecon :
-    activePage === 'tm' && onRefreshTM ? onRefreshTM :
+    activePage === 'daily' && onRefreshDaily ? onRefreshDaily :
     loadDashboard;
 
   const refreshLoading =
     activePage === 'alacriti' ? alacrtiLoading :
     activePage === 'transactions' ? transactionsLoading :
-    activePage === 'exceptions' ? exceptionsLoading :
-    activePage === 'tm' ? tmLoading :
+    activePage === 'daily' ? (dailyLoading ?? isLoading) :
     isLoading;
 
   return (
