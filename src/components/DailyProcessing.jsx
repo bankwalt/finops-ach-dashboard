@@ -6,8 +6,13 @@ import {
   buildRdfiSnapshot,
   buildReconReporting,
   buildProductFlows,
+  buildBankActivity,
 } from '../data/dailyProcessingMockData';
 import RejectionsModal from './RejectionsModal';
+
+// Demo mode: hide all action affordances on Daily Processing for view-only walk-through.
+// Flip to false to re-enable Review/Resolve, Manual Retry, etc.
+const VIEW_ONLY = true;
 
 function fmtUSD(amount) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
@@ -554,12 +559,23 @@ function ProductCard({ product, onReviewRejections }) {
         </>
       )}
 
-      {totalRejected > 0 && (
+      {totalRejected > 0 && !VIEW_ONLY && (
         <div className="dp-product-card-action">
           <span className="dp-product-card-reason">⚠ {rejectReason}</span>
           <button className="dp-action-btn" onClick={() => onReviewRejections?.(product)}>
             Review &amp; resolve →
           </button>
+        </div>
+      )}
+
+      {/* Fallback recovery indicator — shown when auto-fallback successfully caught failures */}
+      {product.fallbackRecovered && product.fallbackRecovered.count > 0 && (
+        <div className="dp-product-card-recovered">
+          <span className="dp-product-card-recovered-glyph">✓</span>
+          <div>
+            <strong>{product.fallbackRecovered.count} auto-recovered</strong>
+            {' — '}{product.fallbackRecovered.fromRail} failures caught by {product.fallbackRecovered.toRail} ({product.fallbackRecovered.reason}). No operator action needed.
+          </div>
         </div>
       )}
     </div>
@@ -588,8 +604,12 @@ function RailWaterfallCard({ leg, order, isFallback }) {
         <span className="dp-rail-latency">{leg.avgLatencyMs ? `${leg.avgLatencyMs} ms avg` : 'idle'}</span>
         {idle ? (
           <span className="dp-pill dp-pill-neutral">Standby</span>
+        ) : failed > 0 && leg.failedRecoveredBy ? (
+          <span className="dp-pill dp-pill-warn">{failed} failed → recovered by {leg.failedRecoveredBy}</span>
         ) : failed > 0 ? (
           <span className="dp-pill dp-pill-warn">{failed} failed → next rail</span>
+        ) : leg.recoveredFromCount > 0 ? (
+          <span className="dp-pill dp-pill-ok">{successRate.toFixed(1)}% · +{leg.recoveredFromCount} from {leg.recoveredFrom}</span>
         ) : (
           <span className="dp-pill dp-pill-ok">{successRate.toFixed(1)}%</span>
         )}
@@ -606,9 +626,10 @@ function ProductFlowsSection({ products, onReviewRejections }) {
     const cnt = Object.values(p.rails).reduce((s, r) => s + r.count, 0);
     const amt = Object.values(p.rails).reduce((s, r) => s + r.amount, 0);
     const rej = Object.values(p.rails).reduce((s, r) => s + (r.rejected || 0), 0);
-    acc.count += cnt; acc.amount += amt; acc.rejected += rej;
+    const recovered = p.fallbackRecovered?.count || 0;
+    acc.count += cnt; acc.amount += amt; acc.rejected += rej; acc.recovered += recovered;
     return acc;
-  }, { count: 0, amount: 0, rejected: 0 });
+  }, { count: 0, amount: 0, rejected: 0, recovered: 0 });
 
   const summary = (
     <div className="dp-totals">
@@ -617,6 +638,9 @@ function ProductFlowsSection({ products, onReviewRejections }) {
       {grand.rejected > 0 && (
         <span className="dp-total-pill dp-total-pill-error">{grand.rejected} need action</span>
       )}
+      {grand.rejected === 0 && grand.recovered > 0 && (
+        <span className="dp-total-pill dp-total-pill-recovered">✓ {grand.recovered} auto-recovered</span>
+      )}
     </div>
   );
 
@@ -624,7 +648,7 @@ function ProductFlowsSection({ products, onReviewRejections }) {
     <section className="dp-section">
       <SectionHeader
         title="Product Transaction Processing"
-        subtitle="Today's volume by product · with rail mix and operator actions"
+        subtitle="Today's volume by product · rail mix and auto-fallback recovery"
         summary={summary}
       />
 
@@ -649,6 +673,85 @@ function ProductFlowsSection({ products, onReviewRejections }) {
   );
 }
 
+/* ============== Posting Lifecycle (collapsed single-bar) ============== */
+function PostingFunnelSection({ data }) {
+  const stages = data.stages;
+  const top = stages[0];
+  const tail = stages[stages.length - 1];
+  const totalCount = top.count;
+  const totalDrop = totalCount - tail.count;
+
+  // Each stage is a slice proportional to its count; later stages stack into the
+  // latest stage that's been reached. Compute "still in stage X" by subtracting
+  // the next stage's count.
+  const slices = [];
+  for (let i = 0; i < stages.length; i++) {
+    const here = stages[i].count;
+    const next = i + 1 < stages.length ? stages[i + 1].count : 0;
+    const stillHere = here - next;
+    if (stillHere > 0 || i === stages.length - 1) {
+      slices.push({
+        id: stages[i].id,
+        label: stages[i].label,
+        count: i === stages.length - 1 ? here : stillHere,
+        // Position in pipeline: 'reconciled' = full; everything else = stuck-at-stage
+        kind: i === stages.length - 1 ? 'reconciled' : 'stuck',
+      });
+    }
+  }
+
+  return (
+    <section className="dp-section">
+      <SectionHeader
+        title="Posting Lifecycle"
+        subtitle="Where today's transactions sit in the bank-core posting flow"
+        summary={
+          <div className="dp-totals">
+            <span className="dp-total-pill">{fmtCount(top.count)} initiated</span>
+            <span className="dp-total-amount">{fmtUSD(top.amount)}</span>
+            {totalDrop > 0 && (
+              <span className="dp-total-pill dp-total-pill-error">{totalDrop} not yet reconciled</span>
+            )}
+          </div>
+        }
+      />
+
+      {/* Single horizontal stacked bar */}
+      <div className="dp-funnel-compact">
+        <div className="dp-funnel-compact-bar" role="img" aria-label="Today's posting lifecycle">
+          {slices.map(s => {
+            const pct = (s.count / totalCount) * 100;
+            return (
+              <div
+                key={s.id}
+                className={`dp-funnel-compact-seg dp-funnel-compact-${s.id}`}
+                style={{ flex: s.count }}
+                title={`${s.label}: ${s.count}`}
+              >
+                {pct >= 12 ? `${s.label} ${s.count}` : ''}
+              </div>
+            );
+          })}
+        </div>
+        <div className="dp-funnel-compact-legend">
+          {stages.map(s => (
+            <span key={s.id} className="dp-funnel-compact-legend-item">
+              <span className={`dp-funnel-compact-dot dp-funnel-compact-${s.id}`}></span>
+              <span className="dp-funnel-compact-label">{s.label}</span>
+              <span className="dp-funnel-compact-count">{fmtCount(s.count)}</span>
+              {s.drop && (
+                <span className={`dp-funnel-compact-drop dp-funnel-drop-${s.drop.glyph === '✗' ? 'error' : s.drop.glyph === '⏱' ? 'warn' : 'flag'}`}>
+                  {s.drop.glyph} {s.drop.reason}
+                </span>
+              )}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ============== Root ============== */
 export default function DailyProcessing({ refreshRef }) {
   const { error } = useDashboard();
@@ -658,6 +761,7 @@ export default function DailyProcessing({ refreshRef }) {
     rdfi: buildRdfiSnapshot(),
     recon: buildReconReporting(),
     products: buildProductFlows(),
+    bankActivity: buildBankActivity(),
     asOf: new Date(),
   }));
   const [rejectionsProduct, setRejectionsProduct] = useState(null);
@@ -669,6 +773,7 @@ export default function DailyProcessing({ refreshRef }) {
       rdfi: buildRdfiSnapshot(),
       recon: buildReconReporting(),
       products: buildProductFlows(),
+      bankActivity: buildBankActivity(),
       asOf: new Date(),
     });
   };
@@ -688,6 +793,7 @@ export default function DailyProcessing({ refreshRef }) {
         products={snapshot.products}
         onReviewRejections={setRejectionsProduct}
       />
+      <PostingFunnelSection data={snapshot.bankActivity} />
       <SwimSection swim={snapshot.swim} />
       <OdfiSection odfi={snapshot.odfi} />
       <RdfiSection rdfi={snapshot.rdfi} />

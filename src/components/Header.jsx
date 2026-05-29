@@ -2,11 +2,13 @@ import { useDashboard } from '../context/DashboardContext';
 
 const TABS = [
   { key: 'daily', label: 'Daily Processing' },
-  { key: 'alacriti', label: 'Alacriti' },
+  // Hidden for demo — restore after:
+  // { key: 'compliance', label: 'ACH Compliance' },
+  // { key: 'alacriti', label: 'Alacriti' },
   { key: 'transactions', label: 'All Transactions' },
 ];
 
-export default function Header({ onRefreshAlacriti, onRefreshTransactions, onRefreshDaily, alacrtiLoading, transactionsLoading, dailyLoading }) {
+export default function Header({ onRefreshAlacriti, onRefreshTransactions, onRefreshDaily, onRefreshCompliance, alacrtiLoading, transactionsLoading, dailyLoading, complianceLoading }) {
   const { apiMode, setApiMode, lastRefreshed, loadDashboard, isLoading, activePage, setActivePage } = useDashboard();
 
   const formattedTime = lastRefreshed
@@ -16,12 +18,14 @@ export default function Header({ onRefreshAlacriti, onRefreshTransactions, onRef
   const handleRefresh =
     activePage === 'alacriti' && onRefreshAlacriti ? onRefreshAlacriti :
     activePage === 'transactions' && onRefreshTransactions ? onRefreshTransactions :
+    activePage === 'compliance' && onRefreshCompliance ? onRefreshCompliance :
     activePage === 'daily' && onRefreshDaily ? onRefreshDaily :
     loadDashboard;
 
   const refreshLoading =
     activePage === 'alacriti' ? alacrtiLoading :
     activePage === 'transactions' ? transactionsLoading :
+    activePage === 'compliance' ? (complianceLoading ?? isLoading) :
     activePage === 'daily' ? (dailyLoading ?? isLoading) :
     isLoading;
 

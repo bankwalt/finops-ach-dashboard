@@ -43,6 +43,21 @@ function fmtTimestampISO(d) {
   return d.toISOString();
 }
 
+// Returns "minutes since ET-midnight" for the given Date — used to compare
+// window cutoffs against current wall-clock ET regardless of browser timezone.
+function getETClockMinutes(d) {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const parts = fmt.formatToParts(d);
+  const h = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+  const m = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+  return h * 60 + m;
+}
+
 function uuid(seed) {
   // Stable mock UUID-ish from seed string
   let h = 0;
@@ -144,7 +159,11 @@ export function buildOdfiSnapshot(now = new Date()) {
     cutoff.setHours(w.etHour, w.etMin, 0, 0);
     if (w.prevDay) cutoff.setDate(cutoff.getDate() + 1); // 01:45 ET next day
 
-    const sent = now.getTime() >= cutoff.getTime();
+    // Compare in actual ET wall-clock time so the demo behaves correctly
+    // regardless of the browser's timezone (e.g., SF = PT = 3 hrs behind ET).
+    const nowETMin = getETClockMinutes(now);
+    const windowETMin = w.etHour * 60 + w.etMin;
+    const sent = w.prevDay ? false : nowETMin >= windowETMin;
 
     if (!sent) {
       return {
@@ -231,7 +250,11 @@ export function buildRdfiSnapshot(now = new Date()) {
   const files = RDFI_WINDOWS.map((w, idx) => {
     const cutoff = new Date(now);
     cutoff.setHours(w.etHour, w.etMin, w.etSec, 0);
-    const received = now.getTime() >= cutoff.getTime();
+
+    // Compare in actual ET wall-clock time (browser may be in PT etc.)
+    const nowETMin = getETClockMinutes(now);
+    const windowETMin = w.etHour * 60 + w.etMin;
+    const received = nowETMin >= windowETMin;
 
     const hhmmss = `${pad(w.etHour)}${pad(w.etMin)}${pad(w.etSec)}`;
     const fileName = `ACH-${todayYMD}${hhmmss}.IN`;
@@ -422,6 +445,99 @@ export function buildReconReporting(now = new Date()) {
   };
 }
 
+// ---- Bank-core activity (funnel + risk) ----
+// Per the FinOps Operator Mindset deck (Slide 6): a funnel view of where today's
+// transactions are in the posting lifecycle, plus a risk-debits callout.
+
+export function buildBankActivity() {
+  // Funnel: count and $ at each posting stage. Drops between stages flag
+  // where transactions are stuck (rejected, settling, mismatched).
+  const stages = [
+    { id: 'initiated',  label: 'Initiated',  description: 'Submitted to FinXact today',         count: 230, amount: 1_068_973.47, drop: null },
+    { id: 'inFlight',   label: 'In-flight',  description: 'Sent to bank, awaiting acknowledgement', count: 226, amount: 1_068_098.37, drop: { reason: '4 rejected (AC04)', glyph: '✗' } },
+    { id: 'posted',     label: 'Posted',     description: 'Bank confirmed receipt + posting',   count: 226, amount: 1_068_098.37, drop: null },
+    { id: 'settled',    label: 'Settled',    description: 'Funds moved on bank ledger',         count: 220, amount: 1_054_212.18, drop: { reason: '6 still settling', glyph: '⏱' } },
+    { id: 'reconciled', label: 'Reconciled', description: 'Matched against Jaris GL',           count: 218, amount: 1_048_403.55, drop: { reason: '2 GL mismatches', glyph: '⚠' } },
+  ];
+
+  // Risk debits: debits likely to bounce/return based on prior signals.
+  const riskDebits = [
+    {
+      id: 'risk-001',
+      reason: 'Prior 3 R01 returns',
+      reasonCode: 'R01-history',
+      account: 'Sunshine Auto Repair LLC',
+      accountTail: '4421',
+      amount: 18_400.00,
+      product: 'Loan Funding',
+      paymentMethod: 'Same-Day ACH',
+      scheduledFor: 'Today 4:45 p.m. ET',
+      severity: 'high',
+    },
+    {
+      id: 'risk-002',
+      reason: 'New RTN — first debit',
+      reasonCode: 'new-rtn',
+      account: 'Coral Springs Bagel Co',
+      accountTail: '7732',
+      amount: 12_280.00,
+      product: 'Managed Settlements',
+      paymentMethod: 'ACH',
+      scheduledFor: 'Today 8:00 p.m. ET',
+      severity: 'medium',
+    },
+    {
+      id: 'risk-003',
+      reason: 'Insufficient funds 2 of last 5',
+      reasonCode: 'nsf-history',
+      account: 'Mendez Tortilleria',
+      accountTail: '0918',
+      amount: 6_840.00,
+      product: 'Loan Funding',
+      paymentMethod: 'ACH',
+      scheduledFor: 'Today 8:00 p.m. ET',
+      severity: 'medium',
+    },
+    {
+      id: 'risk-004',
+      reason: 'Fraud signal flagged',
+      reasonCode: 'fraud-flag',
+      account: 'Quick Cash Mart Inc',
+      accountTail: '5510',
+      amount: 4_200.00,
+      product: 'Managed Settlements',
+      paymentMethod: 'Same-Day ACH',
+      scheduledFor: 'Today 4:45 p.m. ET',
+      severity: 'high',
+    },
+    {
+      id: 'risk-005',
+      reason: 'Account closed warning (R02 last week)',
+      reasonCode: 'r02-warning',
+      account: 'Riverdale Cleaners LLC',
+      accountTail: '8842',
+      amount: 2_180.00,
+      product: 'Loan Funding',
+      paymentMethod: 'ACH',
+      scheduledFor: 'Today 8:00 p.m. ET',
+      severity: 'high',
+    },
+  ];
+
+  const totalAtRisk = riskDebits.reduce((s, d) => s + d.amount, 0);
+  const highCount = riskDebits.filter(d => d.severity === 'high').length;
+
+  return {
+    stages,
+    riskDebits,
+    riskTotals: {
+      count: riskDebits.length,
+      amount: totalAtRisk,
+      highCount,
+    },
+  };
+}
+
 // ---- Product flows ----
 // Real numbers derived from today's Alacriti transaction export (May 4, 2026, 11:04 AM).
 // Per-product rail breakdown drives the operator's view of how each product is processing.
@@ -484,13 +600,15 @@ export function buildProductFlows() {
         senderHint: 'Merchant-owned accounts',
         fallbackChain: PRODUCT_FALLBACK_CHAINS.managedSettlements,
         rails: {
-          fednow: { count: 119, amount:   857_126.71, rejected: 4, rejectReason: 'AC04 Account Closed' },
-          rtp:    { count: 104, amount:   199_735.47, rejected: 0 },
+          fednow: { count: 114, amount:   851_245.18, rejected: 0 },
+          rtp:    { count: 109, amount:   205_616.99, rejected: 0 },
           ingo:   { count:   0, amount:         0.00, rejected: 0 },
           ach:    { count:   0, amount:         0.00, rejected: 0 },
         },
         avgLatencyMs: 1_180,
-        rejections: [
+        fallbackRecovered: { count: 5, fromRail: 'FedNow', toRail: 'RTP', reason: 'Transient FedNow timeout' },
+        rejections: [], // demo: rejections cleared — auto-fallback recovered all FedNow failures via RTP. Historical entries preserved below for future re-enable.
+        _historicalRejections: [
           {
             id: 'CRQRXCQZNWW7c9503daa149400490a',
             scheduledAt: 'May 03, 2026 10:45 PM',
@@ -577,9 +695,10 @@ export function buildProductFlows() {
     ],
 
     // Aggregate rail health (the FedNow → RTP → Ingo waterfall, summed across products)
+    // Today's story: 5 FedNow failures auto-recovered via RTP. No operator action needed.
     railWaterfall: {
-      fednow: { rail: 'FedNow',          provider: 'Alacriti', attempted: 124, succeeded: 120, amount:   857_154.67, avgLatencyMs: 1_120, status: 'warning' },
-      rtp:    { rail: 'RTP',             provider: 'Alacriti', attempted: 110, succeeded: 110, amount:   211_818.80, avgLatencyMs: 1_840, status: 'healthy' },
+      fednow: { rail: 'FedNow',          provider: 'Alacriti', attempted: 120, succeeded: 115, amount:   852_412.85, avgLatencyMs: 1_120, status: 'warning', failedRecoveredBy: 'RTP', recoveredCount: 5 },
+      rtp:    { rail: 'RTP',             provider: 'Alacriti', attempted: 115, succeeded: 115, amount:   216_560.62, avgLatencyMs: 1_840, status: 'healthy', recoveredFromCount: 5, recoveredFrom: 'FedNow' },
       ingo:   { rail: 'OCT (card push)', provider: 'Ingo',     attempted:   0, succeeded:   0, amount:         0.00, avgLatencyMs: null,  status: 'idle'    },
     },
   };
